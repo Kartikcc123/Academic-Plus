@@ -10,6 +10,7 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const path = require('path');
 
 // Global Middleware
 app.use(cors()); // Essential: Allows your React PWA to make requests to this backend
@@ -25,6 +26,8 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/videos', require('./routes/videoRoutes'));
 app.use('/api/notes', require('./routes/noteRoutes'));
+app.use('/api/inquiries', require('./routes/inquiryRoutes'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const PORT = process.env.PORT || 5000;
 

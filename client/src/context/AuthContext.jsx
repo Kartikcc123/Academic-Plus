@@ -1,23 +1,12 @@
-import { createContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useState } from 'react';
 import axios from 'axios';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [admin, setAdmin] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Check localStorage when the app loads
-  useEffect(() => {
-    const loggedInUser = JSON.parse(localStorage.getItem('user'));
-    const loggedInAdmin = JSON.parse(localStorage.getItem('admin'));
-
-    if (loggedInUser) setUser(loggedInUser);
-    if (loggedInAdmin) setAdmin(loggedInAdmin);
-    
-    setLoading(false);
-  }, []);
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user') || 'null'));
+  const [admin, setAdmin] = useState(() => JSON.parse(localStorage.getItem('admin') || 'null'));
 
   // Student Login
   const loginUser = async (email, password) => {
@@ -48,8 +37,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, admin, loginUser, loginAdmin, logout, loading }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, admin, loginUser, loginAdmin, logout, loading: false }}>
+      {children}
     </AuthContext.Provider>
   );
 };

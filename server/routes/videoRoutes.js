@@ -1,16 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getVideos, createVideo, deleteVideo } = require('../controllers/videoController');
+const { createVideo, getVideos } = require('../controllers/videoController');
+const { protectAdmin } = require('../middleware/adminMiddleware');
+const { protectAny } = require('../middleware/authMiddleware');
 
-// Import our completely separate middlewares
-const { protect } = require('../middleware/authMiddleware'); // Student Auth
-const { protectAdmin } = require('../middleware/adminMiddleware'); // Admin Auth
-
-// Student Route: Only requires a valid Student JWT to view videos
-router.get('/', protect, getVideos);
-
-// Admin Routes: Strictly require a valid Admin JWT to upload or delete
-router.post('/', protectAdmin, createVideo);
-router.delete('/:id', protectAdmin, deleteVideo);
+router.post('/', protectAdmin, createVideo); // Only Director can upload
+router.get('/', protectAny, getVideos);      // Students and admins can view
 
 module.exports = router;

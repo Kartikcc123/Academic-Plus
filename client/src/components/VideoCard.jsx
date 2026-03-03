@@ -1,30 +1,64 @@
-import ReactPlayer from 'react-player/youtube';
+import ReactPlayer from "react-player";
 
 export default function VideoCard({ video }) {
+  const rawUrl = (video?.youtubeLink || "").trim();
+
+  const normalizeYouTubeUrl = (input) => {
+    if (!input) return "";
+
+    const ytIdPattern = /^[a-zA-Z0-9_-]{11}$/;
+    const getEmbedUrl = (id) => `https://www.youtube.com/embed/${id}`;
+
+    if (ytIdPattern.test(input)) return getEmbedUrl(input);
+
+    let value = input;
+    if (!/^https?:\/\//i.test(value)) {
+      value = `https://${value}`;
+    }
+
+    try {
+      const parsed = new URL(value);
+      const host = parsed.hostname.replace(/^www\./, "");
+
+      if (host === "youtu.be") {
+        const id = parsed.pathname.split("/")[1];
+        return ytIdPattern.test(id) ? getEmbedUrl(id) : "";
+      }
+
+      if (host === "youtube.com" || host === "m.youtube.com") {
+        const v = parsed.searchParams.get("v");
+        if (ytIdPattern.test(v || "")) return getEmbedUrl(v);
+
+        const parts = parsed.pathname.split("/").filter(Boolean);
+        const index = ["embed", "shorts", "live"].includes(parts[0]) ? 1 : -1;
+        const id = index > -1 ? parts[index] : "";
+        if (ytIdPattern.test(id)) return getEmbedUrl(id);
+      }
+    } catch {
+      return "";
+    }
+
+    return "";
+  };
+
+  const finalUrl = normalizeYouTubeUrl(rawUrl);
+
+  if (!finalUrl || !ReactPlayer.canPlay(finalUrl)) {
+    return <p>Video link unavailable.</p>;
+  }
+
   return (
-    <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
-      
-      {/* Responsive Player Wrapper */}
-      <div style={{ position: 'relative', paddingTop: '56.25%' /* 16:9 Aspect Ratio */ }}>
-        <ReactPlayer 
-          url={video.youtubeLink} 
-          width="100%" 
-          height="100%" 
-          style={{ position: 'absolute', top: 0, left: 0 }} 
-          controls={true}
-        />
-      </div>
-      
-      {/* Video Details */}
-      <div style={{ padding: '15px', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ marginBottom: '10px' }}>
-          <span style={{ backgroundColor: '#facc15', color: '#1a365d', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
-            {video.subject}
-          </span>
-        </div>
-        <h3 style={{ margin: '0 0 10px 0', color: '#1a365d', fontSize: '18px' }}>{video.title}</h3>
-        <p style={{ fontSize: '14px', color: '#666', flexGrow: 1, margin: '0' }}>{video.description}</p>
-      </div>
+    <div style={{ position: "relative", paddingTop: "56.25%" }}>
+      <ReactPlayer
+        src={finalUrl}
+        width="100%"
+        height="100%"
+        style={{ position: "absolute", top: 0, left: 0 }}
+        controls
+        playing={false}
+        playsInline
+        config={{ youtube: { playerVars: { rel: 0, modestbranding: 1 } } }}
+      />
     </div>
   );
 }

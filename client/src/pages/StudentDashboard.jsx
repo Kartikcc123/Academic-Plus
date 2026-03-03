@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import ReactPlayer from 'react-player'; // Lightweight import just for YouTube
+import VideoCard from '../components/VideoCard';
 
 export default function StudentDashboard() {
   const { user, logout } = useContext(AuthContext);
@@ -9,6 +9,7 @@ export default function StudentDashboard() {
   const [notes, setNotes] = useState([]);
   const [activeTab, setActiveTab] = useState('videos'); // 'videos' or 'notes'
   const [selectedCourse, setSelectedCourse] = useState('All');
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
   // Fetch data when the dashboard loads
   useEffect(() => {
@@ -42,6 +43,33 @@ export default function StudentDashboard() {
   // Filter content based on the selected dropdown
   const filteredVideos = selectedCourse === 'All' ? videos : videos.filter(v => v.subject === selectedCourse);
   const filteredNotes = selectedCourse === 'All' ? notes : notes.filter(n => n.subject === selectedCourse);
+
+  const normalizeVideoUrl = (url) => {
+    if (!url) return '';
+    let value = url.trim();
+    if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+    if (value.includes('youtu.be/')) {
+      const id = value.split('youtu.be/')[1]?.split(/[?&]/)[0];
+      if (id) return `https://www.youtube.com/watch?v=${id}`;
+    }
+    if (value.includes('youtube.com/shorts/')) {
+      const id = value.split('youtube.com/shorts/')[1]?.split(/[?&/]/)[0];
+      if (id) return `https://www.youtube.com/watch?v=${id}`;
+    }
+    if (value.includes('youtube.com/embed/')) {
+      const id = value.split('youtube.com/embed/')[1]?.split(/[?&/]/)[0];
+      if (id) return `https://www.youtube.com/watch?v=${id}`;
+    }
+    return value;
+  };
+
+  const buildNoteUrl = (fileUrl) => {
+    if (!fileUrl) return '#';
+    const cleaned = fileUrl.trim().replace(/\\/g, '/');
+    if (/^https?:\/\//i.test(cleaned)) return cleaned;
+    const withSlash = cleaned.startsWith('/') ? cleaned : `/${cleaned}`;
+    return `${apiBaseUrl}${withSlash}`;
+  };
 
   return (
     <div style={{ fontFamily: 'sans-serif', backgroundColor: '#f0f4f8', minHeight: '100vh', paddingBottom: '40px' }}>
@@ -105,15 +133,7 @@ export default function StudentDashboard() {
             {filteredVideos.map((video) => (
               <div key={video._id} style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                 {/* Responsive Player Wrapper */}
-                <div style={{ position: 'relative', paddingTop: '56.25%' /* 16:9 Aspect Ratio */ }}>
-                  <ReactPlayer 
-                    url={video.youtubeLink} 
-                    width="100%" 
-                    height="100%" 
-                    style={{ position: 'absolute', top: 0, left: 0 }} 
-                    controls={true}
-                  />
-                </div>
+                <VideoCard video={{ ...video, youtubeLink: normalizeVideoUrl(video.youtubeLink) }} />
                 <div style={{ padding: '15px' }}>
                   <span style={{ backgroundColor: '#facc15', color: '#1a365d', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>{video.subject}</span>
                   <h3 style={{ margin: '10px 0', color: '#1a365d' }}>{video.title}</h3>
@@ -135,7 +155,7 @@ export default function StudentDashboard() {
                 <h3 style={{ margin: '10px 0', color: '#1a365d' }}>{note.title}</h3>
                 <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>{note.description}</p>
                 <a 
-                  href={note.fileUrl} 
+                  href={buildNoteUrl(note.fileUrl)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   style={{ display: 'inline-block', backgroundColor: '#1a365d', color: 'white', padding: '8px 15px', borderRadius: '5px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px' }}

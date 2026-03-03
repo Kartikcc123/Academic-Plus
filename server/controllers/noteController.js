@@ -1,43 +1,77 @@
-const Note = require('../models/Note');
+const Note = require('../models/Note'); // Ensure you have this model created!
 
-// @desc    Get all notes for students
-// @route   GET /api/notes
-// @access  Private (Students)
-const getNotes = async (req, res) => {
-  try {
-    const notes = await Note.find().sort({ createdAt: -1 });
-    res.status(200).json(notes);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// @desc    Upload a new note/PDF link
+// @desc    Create a new Note (Using a Google Drive / External Link)
 // @route   POST /api/notes
 // @access  Private (Admin Only)
 const createNote = async (req, res) => {
   try {
-    const { title, description, fileUrl, subject } = req.body;
+    const { title, subject, description, fileUrl } = req.body;
 
-    if (!title || !fileUrl || !subject) {
-      return res.status(400).json({ message: 'Please provide title, file URL, and subject' });
+    if (!fileUrl) {
+      return res.status(400).json({ message: 'Please provide a file URL.' });
     }
 
+    const safeTitle = title || 'Study Material';
+    const safeSubject = subject || 'General';
+
     const note = await Note.create({
-      title,
+      title: safeTitle,
+      subject: safeSubject,
       description,
       fileUrl,
-      subject,
-      uploadedBy: req.admin._id, // Secured by protectAdmin middleware
     });
 
-    res.status(201).json(note);
+    res.status(201).json({ message: 'Note linked successfully!', note });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Delete a note
+// @desc    Upload a Local File and create a Note document
+// @route   POST /api/notes/upload
+// @access  Private (Admin Only)
+const uploadLocalNote = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file was detected in the upload.' });
+    }
+
+    const { title, subject, description } = req.body;
+    const baseName = req.file.originalname.replace(/\.[^/.]+$/, '');
+    const safeTitle = title || baseName || 'Study Material';
+    const safeSubject = subject || 'General';
+
+    const note = await Note.create({
+      title: safeTitle,
+      subject: safeSubject,
+      description,
+      fileUrl: `/uploads/${req.file.filename}`,
+    });
+
+    res.status(201).json({
+      message: 'File uploaded and note published successfully!',
+      note
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get all Notes (for the Student Dashboard)
+// @route   GET /api/notes
+// @access  Private (Logged in Students & Admins)
+const getNotes = async (req, res) => {
+  try {
+    // Fetch all notes, sorting by the newest ones first
+    const notes = await Note.find({}).sort({ createdAt: -1 });
+    res.status(200).json(notes);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch notes.' });
+  }
+};
+
+// @desc    Delete a Note
 // @route   DELETE /api/notes/:id
 // @access  Private (Admin Only)
 const deleteNote = async (req, res) => {
@@ -48,15 +82,17 @@ const deleteNote = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    if (!req.admin) {
-      return res.status(401).json({ message: 'User not authorized' });
-    }
-
     await note.deleteOne();
-    res.status(200).json({ id: req.params.id, message: 'Note deleted successfully' });
+    res.status(200).json({ message: 'Note deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { getNotes, createNote, deleteNote };
+// EXPORT ALL FUNCTIONS (This is what caused your error earlier!)
+module.exports = {
+  createNote,
+  uploadLocalNote,
+  getNotes,
+  deleteNote
+};

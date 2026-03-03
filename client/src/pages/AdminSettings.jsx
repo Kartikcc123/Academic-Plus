@@ -13,7 +13,7 @@ export default function AdminSettings() {
       const config = { headers: { Authorization: `Bearer ${admin.token}` } };
       await axios.put('/api/admin/profile', { name, password: newPassword }, config);
       alert("Director Profile Updated Successfully!");
-    } catch (err) {
+    } catch {
       alert("Failed to update profile");
     }
   };
