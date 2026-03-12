@@ -5,9 +5,10 @@ import { Provider } from 'react-redux';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App.jsx';
 import { store } from './redux/store';
+import { API_BASE_URL } from './lib/api';
 import './index.css';
 
-axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || '';
+axios.defaults.baseURL = API_BASE_URL;
 
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {

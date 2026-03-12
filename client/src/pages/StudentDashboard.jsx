@@ -12,6 +12,7 @@ import { AuthContext } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import NoteCard from '../components/NoteCard';
 import VideoCard from '../components/VideoCard';
+import { API_BASE_URL } from '../lib/api';
 
 export default function StudentDashboard() {
   const { user, logout } = useContext(AuthContext);
@@ -21,7 +22,7 @@ export default function StudentDashboard() {
   const [selectedCourse, setSelectedCourse] = useState('All');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+  const apiBaseUrl = API_BASE_URL;
 
   useEffect(() => {
     const fetchContent = async () => {

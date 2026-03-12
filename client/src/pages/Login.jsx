@@ -20,7 +20,11 @@ export default function Login() {
       await loginUser(email, password);
       navigate('/dashboard');
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Invalid email or password.');
+      if (!requestError.response) {
+        setError('Unable to reach the server. Check the deployed API URL.');
+      } else {
+        setError(requestError.response?.data?.message || 'Invalid email or password.');
+      }
     } finally {
       setLoading(false);
     }
