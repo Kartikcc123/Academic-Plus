@@ -1,6 +1,6 @@
 {
   "name": "Academic Plus",
-  "short_name": "Academic Plus",
+  "short_name": "AcadPlus",
   "description": "Professional coaching and healthcare career guidance platform with student and admin portals.",
   "id": "/",
   "start_url": "/",
@@ -21,6 +21,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
