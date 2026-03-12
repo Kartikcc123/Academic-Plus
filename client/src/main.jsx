@@ -29,6 +29,14 @@ if (import.meta.env.PROD) {
   });
 }
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js")
+      .then(() => console.log("Service Worker Registered"))
+      .catch((error) => console.log("SW registration failed", error));
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>
