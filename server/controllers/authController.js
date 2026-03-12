@@ -39,6 +39,7 @@ const registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        portalAccess: user.portalAccess,
         token: generateToken(user._id),
       });
     } else {
@@ -60,11 +61,16 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email }).select('+password');
 
     if (user && (await user.matchPassword(password))) {
+      if (!user.portalAccess) {
+        return res.status(403).json({ message: 'Portal access is pending admin approval' });
+      }
+
       res.json({
         _id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
+        portalAccess: user.portalAccess,
         token: generateToken(user._id),
       });
     } else {

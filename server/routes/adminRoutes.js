@@ -41,6 +41,31 @@ router.get('/students', protectAdmin, async (req, res) => {
   }
 });
 
+// @route   PATCH /api/admin/students/:id/portal-access
+// @desc    Grant or revoke student portal access
+// @access  Private/Admin
+router.patch('/students/:id/portal-access', protectAdmin, async (req, res) => {
+  try {
+    const { portalAccess } = req.body;
+    const student = await User.findById(req.params.id).select('-password');
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    student.portalAccess = Boolean(portalAccess);
+    await student.save();
+
+    res.status(200).json({
+      message: `Portal access ${student.portalAccess ? 'granted' : 'revoked'} successfully`,
+      student,
+    });
+  } catch (error) {
+    console.error('Portal access update error:', error);
+    res.status(500).json({ message: 'Server error while updating portal access' });
+  }
+});
+
 // @route   DELETE /api/admin/students/:id
 // @desc    Permanently delete a student from the database
 // @access  Private/Admin

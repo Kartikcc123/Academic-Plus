@@ -1,0 +1,26 @@
+{
+  "name": "Academic Plus",
+  "short_name": "Academic Plus",
+  "description": "Professional coaching and healthcare career guidance platform with student and admin portals.",
+  "id": "/",
+  "theme_color": "#102033",
+  "background_color": "#fcfaf5",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

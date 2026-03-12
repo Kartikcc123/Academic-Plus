@@ -6,22 +6,42 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate', // Automatically updates the app on students' phones when you deploy a new version
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      registerType: 'autoUpdate',
+      includeAssets: ['app-icon.svg', 'app-icon-maskable.svg'],
+      workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+      },
       manifest: {
-  name: 'Academic Plus Institute',
-  short_name: 'Academic Plus',
-  description: 'Your Gateway to a Medical Career. Exclusive portal for notes and lectures.',
-  theme_color: '#1a365d', // The deep navy blue from the poster
-  background_color: '#ffffff',
-  display: 'standalone',
-  // ... keep your icons array exactly as it was
-}
-    })
+        name: 'Academic Plus',
+        short_name: 'Academic Plus',
+        description: 'Professional coaching and healthcare career guidance platform with student and admin portals.',
+        theme_color: '#102033',
+        background_color: '#fcfaf5',
+        display: 'standalone',
+        scope: '/',
+        start_url: '/',
+        orientation: 'portrait-primary',
+        categories: ['education', 'productivity'],
+        icons: [
+          {
+            src: '/app-icon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any',
+          },
+          {
+            src: '/app-icon-maskable.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'maskable',
+          },
+        ],
+      },
+    }),
   ],
   server: {
     port: 3000,
-    // This proxy prevents CORS errors during development
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

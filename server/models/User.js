@@ -25,15 +25,20 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['student', 'admin'],
     default: 'student'
+  },
+  portalAccess: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 
 // Pre-save hook to hash the password before saving to the database
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function() {
   // If the password isn't modified, move on (useful for profile updates)
   if (!this.isModified('password')) {
-    next();
+    return;
   }
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });

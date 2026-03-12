@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import AuthLayout from '../components/AuthLayout';
 
 export default function Register() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
@@ -8,73 +9,88 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
+  const handleRegister = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      // Hit the public register route
       await axios.post('/api/auth/register', formData);
-      alert('Registration successful! Please log in.');
-      navigate('/login'); // Send them to login after registering
-    } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong during registration');
+      navigate('/login');
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f0f4f8', fontFamily: 'sans-serif' }}>
-      <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <h2 style={{ color: '#1a365d', margin: '0 0 10px 0' }}>Academic Plus</h2>
-          <p style={{ color: '#666', margin: 0 }}>Create your student account</p>
-        </div>
-
-        {error && <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '5px', marginBottom: '20px', textAlign: 'center', fontSize: '14px' }}>{error}</div>}
-
-        <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <input 
-            type="text" 
-            placeholder="Full Name" 
-            value={formData.name} 
-            onChange={(e) => setFormData({...formData, name: e.target.value})} 
-            required 
-            style={{ padding: '12px', borderRadius: '5px', border: '1px solid #ccc' }}
-          />
-          <input 
-            type="email" 
-            placeholder="Email Address" 
-            value={formData.email} 
-            onChange={(e) => setFormData({...formData, email: e.target.value})} 
-            required 
-            style={{ padding: '12px', borderRadius: '5px', border: '1px solid #ccc' }}
-          />
-          <input 
-            type="password" 
-            placeholder="Create Password (min. 6 characters)" 
-            value={formData.password} 
-            onChange={(e) => setFormData({...formData, password: e.target.value})} 
-            required 
-            minLength="6"
-            style={{ padding: '12px', borderRadius: '5px', border: '1px solid #ccc' }}
-          />
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{ backgroundColor: '#1a365d', color: '#facc15', padding: '12px', border: 'none', borderRadius: '5px', fontWeight: 'bold', fontSize: '16px', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '10px' }}
-          >
-            {loading ? 'Creating Account...' : 'Register'}
-          </button>
-        </form>
-
-        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: '#666' }}>
-          Already have an account? <Link to="/login" style={{ color: '#1a365d', fontWeight: 'bold', textDecoration: 'none' }}>Log in here</Link>
+    <AuthLayout
+      eyebrow="New students"
+      title="Create a student account for learning access."
+      description="Registration has been kept simple, but the interface now matches the upgraded coaching brand across the website."
+    >
+      <div style={{ marginBottom: 24 }}>
+        <div className="card-kicker">Register</div>
+        <h2 style={{ marginBottom: 8 }}>Student account setup</h2>
+        <p className="section-copy" style={{ margin: 0 }}>
+          Create your account to request access. Admin approval is required before the student portal can be used.
         </p>
       </div>
-    </div>
+
+      {error ? <div className="status-message error">{error}</div> : null}
+
+      <form className="form-grid" onSubmit={handleRegister}>
+        <div>
+          <label className="field-label" htmlFor="register-name">Full name</label>
+          <input
+            id="register-name"
+            className="field-control"
+            type="text"
+            value={formData.name}
+            onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="register-email">Email address</label>
+          <input
+            id="register-email"
+            className="field-control"
+            type="email"
+            value={formData.email}
+            onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="register-password">Password</label>
+          <input
+            id="register-password"
+            className="field-control"
+            type="password"
+            value={formData.password}
+            onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
+            minLength="6"
+            required
+          />
+        </div>
+        <button className="btn" type="submit" disabled={loading}>
+          {loading ? 'Creating account...' : 'Create account'}
+        </button>
+      </form>
+
+      <p className="section-copy" style={{ marginTop: 20, marginBottom: 0 }}>
+        After registration, your account stays pending until an admin grants portal access.
+      </p>
+
+      <p className="section-copy" style={{ marginTop: 12, marginBottom: 0 }}>
+        Already registered?
+        {' '}
+        <Link to="/login" style={{ color: '#8f581f', fontWeight: 700, textDecoration: 'none' }}>
+          Log in here
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }

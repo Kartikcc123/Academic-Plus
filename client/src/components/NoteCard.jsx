@@ -1,27 +1,20 @@
-export default function NoteCard({ note }) {
-  const baseUrl = import.meta.env.VITE_API_URL || "";
-  const rawFileUrl = (note?.fileUrl || "").trim();
-  const normalizedPath = rawFileUrl.replace(/\\/g, "/");
-  const isExternalLink = /^https?:\/\//i.test(normalizedPath);
-  const formattedPath = normalizedPath.startsWith("/")
-    ? normalizedPath
-    : `/${normalizedPath}`;
-  const finalUrl = isExternalLink ? normalizedPath : `${baseUrl}${formattedPath}`;
-  const hasValidLink = Boolean(rawFileUrl);
+import { FaArrowRight, FaFilePdf } from 'react-icons/fa';
 
+export default function NoteCard({ note, href }) {
   return (
-    <div>
-      <a
-        href={hasValidLink ? finalUrl : "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => {
-          if (!hasValidLink) e.preventDefault();
-        }}
-        aria-disabled={!hasValidLink}
-      >
-        View Material
-      </a>
-    </div>
+    <article className="content-card">
+      <div className="content-body">
+        <div className="subject-chip">
+          <FaFilePdf />
+          {note.subject || 'General'}
+        </div>
+        <h3 style={{ marginTop: 16, marginBottom: 8 }}>{note.title}</h3>
+        <p className="section-copy">{note.description || 'Study material uploaded for student access.'}</p>
+        <a className="btn-secondary" href={href} target="_blank" rel="noopener noreferrer">
+          View material
+          <FaArrowRight />
+        </a>
+      </div>
+    </article>
   );
 }

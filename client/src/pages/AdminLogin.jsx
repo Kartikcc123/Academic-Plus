@@ -1,105 +1,111 @@
-import { useState, useContext } from 'react';
+import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import AuthLayout from '../components/AuthLayout';
+
+const SECRET_PASSCODE = 'ACADEMIC2026';
 
 export default function AdminLogin() {
-  // Step 1 State (The Secret Door)
   const [passcode, setPasscode] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
-  
-  // Step 2 State (The Actual Login)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  
+  const [loading, setLoading] = useState(false);
   const { loginAdmin } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // The secret word only you and Dr. Ajay know
-  const SECRET_PASSCODE = 'ACADEMIC2026'; 
-
-  // Handle unlocking the hidden door
-  const handleUnlock = (e) => {
-    e.preventDefault();
+  const handleUnlock = (event) => {
+    event.preventDefault();
     if (passcode === SECRET_PASSCODE) {
       setIsUnlocked(true);
       setError('');
-    } else {
-      setError('Access Denied: Invalid Passcode');
-      setPasscode('');
+      return;
     }
+
+    setError('Invalid director access code.');
+    setPasscode('');
   };
 
-  // Handle the actual database login
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError('');
+
     try {
       await loginAdmin(email, password);
-      navigate('/admin/panel'); 
-    } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      navigate('/admin/panel');
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Director login failed.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f0f4f8', fontFamily: 'sans-serif' }}>
-      <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-        
-        <h2 style={{ color: '#1a365d', marginBottom: '20px' }}>
-          {isUnlocked ? 'Director Portal' : 'Restricted Zone'}
-        </h2>
-
-        {error && <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '5px', marginBottom: '20px', fontSize: '14px' }}>{error}</div>}
-
-        {/* STEP 1: THE HIDDEN DOOR */}
-        {!isUnlocked ? (
-          <form onSubmit={handleUnlock} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <p style={{ fontSize: '14px', color: '#666', margin: '0 0 10px 0' }}>Enter the institute security code to continue.</p>
-            <input 
-              type="password" 
-              placeholder="Security Passcode" 
-              value={passcode} 
-              onChange={(e) => setPasscode(e.target.value)} 
-              required 
-              style={{ padding: '12px', borderRadius: '5px', border: '1px solid #ccc', textAlign: 'center', letterSpacing: '3px' }}
-            />
-            <button 
-              type="submit" 
-              style={{ backgroundColor: '#1a365d', color: '#facc15', padding: '12px', border: 'none', borderRadius: '5px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}
-            >
-              Verify Code
-            </button>
-          </form>
-        ) : (
-          
-          /* STEP 2: THE ACTUAL LOGIN (Only shows if unlocked) */
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <input 
-              type="email" 
-              placeholder="Director Email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              required 
-              style={{ padding: '12px', borderRadius: '5px', border: '1px solid #ccc' }}
-            />
-            <input 
-              type="password" 
-              placeholder="Password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
-              style={{ padding: '12px', borderRadius: '5px', border: '1px solid #ccc' }}
-            />
-            <button 
-              type="submit" 
-              style={{ backgroundColor: '#dc2626', color: 'white', padding: '12px', border: 'none', borderRadius: '5px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}
-            >
-              Secure Login
-            </button>
-          </form>
-        )}
-        
+    <AuthLayout
+      eyebrow="Director access"
+      title="Restricted admin portal for institute management."
+      description="The styling is now consistent with the rest of the frontend while preserving the existing two-step access flow."
+    >
+      <div style={{ marginBottom: 24 }}>
+        <div className="card-kicker">Admin area</div>
+        <h2 style={{ marginBottom: 8 }}>{isUnlocked ? 'Director login' : 'Verify access code'}</h2>
+        <p className="section-copy" style={{ margin: 0 }}>
+          {isUnlocked
+            ? 'Enter the director credentials to continue into the admin panel.'
+            : 'Use the institute access code before signing in.'}
+        </p>
       </div>
-    </div>
+
+      {error ? <div className="status-message error">{error}</div> : null}
+
+      {!isUnlocked ? (
+        <form className="form-grid" onSubmit={handleUnlock}>
+          <div>
+            <label className="field-label" htmlFor="director-code">Access code</label>
+            <input
+              id="director-code"
+              className="field-control"
+              type="password"
+              value={passcode}
+              onChange={(event) => setPasscode(event.target.value)}
+              required
+            />
+          </div>
+          <button className="btn-secondary" type="submit">
+            Verify code
+          </button>
+        </form>
+      ) : (
+        <form className="form-grid" onSubmit={handleLogin}>
+          <div>
+            <label className="field-label" htmlFor="director-email">Director email</label>
+            <input
+              id="director-email"
+              className="field-control"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="field-label" htmlFor="director-password">Password</label>
+            <input
+              id="director-password"
+              className="field-control"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+          </div>
+          <button className="btn" type="submit" disabled={loading}>
+            {loading ? 'Signing in...' : 'Enter portal'}
+          </button>
+        </form>
+      )}
+    </AuthLayout>
   );
 }

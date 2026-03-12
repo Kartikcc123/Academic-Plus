@@ -1,73 +1,82 @@
-import { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useContext, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import AuthLayout from '../components/AuthLayout';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  // Pull the login function from our global context
   const { loginUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError('');
 
     try {
       await loginUser(email, password);
-      navigate('/dashboard'); // Boom. Straight to the videos.
-    } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      navigate('/dashboard');
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Invalid email or password.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f0f4f8', fontFamily: 'sans-serif' }}>
-      <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <h2 style={{ color: '#1a365d', margin: '0 0 10px 0' }}>Welcome Back</h2>
-          <p style={{ color: '#666', margin: 0 }}>Log in to access your courses</p>
-        </div>
-
-        {error && <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '5px', marginBottom: '20px', textAlign: 'center', fontSize: '14px' }}>{error}</div>}
-
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <input 
-            type="email" 
-            placeholder="Email Address" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
-            style={{ padding: '12px', borderRadius: '5px', border: '1px solid #ccc' }}
-          />
-          <input 
-            type="password" 
-            placeholder="Password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-            style={{ padding: '12px', borderRadius: '5px', border: '1px solid #ccc' }}
-          />
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{ backgroundColor: '#facc15', color: '#1a365d', padding: '12px', border: 'none', borderRadius: '5px', fontWeight: 'bold', fontSize: '16px', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '10px' }}
-          >
-            {loading ? 'Logging in...' : 'Access Portal'}
-          </button>
-        </form>
-
-        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: '#666' }}>
-          Don't have an account? <Link to="/register" style={{ color: '#1a365d', fontWeight: 'bold', textDecoration: 'none' }}>Register here</Link>
+    <AuthLayout
+      eyebrow="Student access"
+      title="Log in to the Academic Plus student portal."
+      description="Access your learning resources, notes, and student dashboard through a cleaner, more credible portal experience."
+    >
+      <div style={{ marginBottom: 24 }}>
+        <div className="card-kicker">Welcome back</div>
+        <h2 style={{ marginBottom: 8 }}>Student login</h2>
+        <p className="section-copy" style={{ margin: 0 }}>
+          Enter your email and password to continue.
         </p>
       </div>
-    </div>
+
+      {error ? <div className="status-message error">{error}</div> : null}
+
+      <form className="form-grid" onSubmit={handleLogin}>
+        <div>
+          <label className="field-label" htmlFor="login-email">Email address</label>
+          <input
+            id="login-email"
+            className="field-control"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="login-password">Password</label>
+          <input
+            id="login-password"
+            className="field-control"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+        </div>
+        <button className="btn" type="submit" disabled={loading}>
+          {loading ? 'Logging in...' : 'Access portal'}
+        </button>
+      </form>
+
+      <p className="section-copy" style={{ marginTop: 20, marginBottom: 0 }}>
+        Need an account?
+        {' '}
+        <Link to="/register" style={{ color: '#8f581f', fontWeight: 700, textDecoration: 'none' }}>
+          Register here
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }

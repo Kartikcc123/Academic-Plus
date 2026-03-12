@@ -8,7 +8,7 @@ export const StudentRoute = () => {
 
   if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>;
 
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
+  return user?.portalAccess ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
 // Guard for Admin Pages

@@ -24,6 +24,10 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'Not authorized as user' });
       }
 
+      if (!req.user.portalAccess) {
+        return res.status(403).json({ message: 'Student portal access has not been approved yet' });
+      }
+
       next(); // Move on to the actual route controller
     } catch (error) {
       console.error(error);
@@ -50,6 +54,9 @@ const protectAny = async (req, res, next) => {
 
       const user = await User.findById(decoded.id).select('-password');
       if (user) {
+        if (!user.portalAccess) {
+          return res.status(403).json({ message: 'Student portal access has not been approved yet' });
+        }
         req.user = user;
         return next();
       }

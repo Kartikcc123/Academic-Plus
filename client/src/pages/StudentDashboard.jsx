@@ -1,67 +1,70 @@
-import { useState, useEffect, useContext } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import {
+  FaBookOpen,
+  FaFilter,
+  FaGraduationCap,
+  FaLayerGroup,
+  FaPlayCircle,
+  FaSignOutAlt,
+} from 'react-icons/fa';
 import { AuthContext } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import NoteCard from '../components/NoteCard';
 import VideoCard from '../components/VideoCard';
 
 export default function StudentDashboard() {
   const { user, logout } = useContext(AuthContext);
   const [videos, setVideos] = useState([]);
   const [notes, setNotes] = useState([]);
-  const [activeTab, setActiveTab] = useState('videos'); // 'videos' or 'notes'
+  const [activeTab, setActiveTab] = useState('videos');
   const [selectedCourse, setSelectedCourse] = useState('All');
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
-  // Fetch data when the dashboard loads
   useEffect(() => {
     const fetchContent = async () => {
       try {
+        setLoading(true);
+        setError('');
+
         const config = {
           headers: {
             Authorization: `Bearer ${user?.token}`,
           },
         };
 
-        // Fetch both videos and notes from our locked backend routes
-        const videoRes = await axios.get('/api/videos', config);
-        const noteRes = await axios.get('/api/notes', config);
+        const [videoRes, noteRes] = await Promise.all([
+          axios.get('/api/videos', config),
+          axios.get('/api/notes', config),
+        ]);
 
         setVideos(videoRes.data);
         setNotes(noteRes.data);
-      } catch (error) {
-        console.error('Error fetching content:', error);
+      } catch (requestError) {
+        setError(requestError.response?.data?.message || 'Unable to load student content right now.');
+      } finally {
+        setLoading(false);
       }
     };
 
-    if (user) {
+    if (user?.token) {
       fetchContent();
     }
   }, [user]);
 
-  // Extract all unique courses/subjects dynamically so the dropdown populates automatically
-  const allCourses = ['All', ...new Set([...videos.map(v => v.subject), ...notes.map(n => n.subject)])];
+  const allCourses = useMemo(
+    () => ['All', ...new Set([...videos.map((item) => item.subject), ...notes.map((item) => item.subject)])],
+    [videos, notes],
+  );
 
-  // Filter content based on the selected dropdown
-  const filteredVideos = selectedCourse === 'All' ? videos : videos.filter(v => v.subject === selectedCourse);
-  const filteredNotes = selectedCourse === 'All' ? notes : notes.filter(n => n.subject === selectedCourse);
-
-  const normalizeVideoUrl = (url) => {
-    if (!url) return '';
-    let value = url.trim();
-    if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
-    if (value.includes('youtu.be/')) {
-      const id = value.split('youtu.be/')[1]?.split(/[?&]/)[0];
-      if (id) return `https://www.youtube.com/watch?v=${id}`;
-    }
-    if (value.includes('youtube.com/shorts/')) {
-      const id = value.split('youtube.com/shorts/')[1]?.split(/[?&/]/)[0];
-      if (id) return `https://www.youtube.com/watch?v=${id}`;
-    }
-    if (value.includes('youtube.com/embed/')) {
-      const id = value.split('youtube.com/embed/')[1]?.split(/[?&/]/)[0];
-      if (id) return `https://www.youtube.com/watch?v=${id}`;
-    }
-    return value;
-  };
+  const filteredVideos = selectedCourse === 'All'
+    ? videos
+    : videos.filter((item) => item.subject === selectedCourse);
+  const filteredNotes = selectedCourse === 'All'
+    ? notes
+    : notes.filter((item) => item.subject === selectedCourse);
 
   const buildNoteUrl = (fileUrl) => {
     if (!fileUrl) return '#';
@@ -71,103 +74,131 @@ export default function StudentDashboard() {
     return `${apiBaseUrl}${withSlash}`;
   };
 
+  const stats = [
+    { label: 'Recorded lectures', value: videos.length, icon: FaPlayCircle },
+    { label: 'Study materials', value: notes.length, icon: FaBookOpen },
+    { label: 'Subjects available', value: Math.max(allCourses.length - 1, 0), icon: FaLayerGroup },
+  ];
+
   return (
-    <div style={{ fontFamily: 'sans-serif', backgroundColor: '#f0f4f8', minHeight: '100vh', paddingBottom: '40px' }}>
-      
-      {/* Dashboard Header */}
-      <header style={{ backgroundColor: '#1a365d', padding: '15px 30px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '20px', color: '#facc15' }}>Academic Plus Portal</h1>
-          <p style={{ margin: 0, fontSize: '14px' }}>Welcome back, {user?.name}</p>
-        </div>
-        <button 
-          onClick={logout} 
-          style={{ backgroundColor: '#dc2626', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          Logout
-        </button>
-      </header>
+    <div className="site-shell">
+      <Navbar />
 
-      {/* Controls: Tabs & Filters */}
-      <div style={{ maxWidth: '1000px', margin: '30px auto', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-        
-        {/* Toggle Buttons */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button 
-            onClick={() => setActiveTab('videos')}
-            style={{ padding: '10px 20px', borderRadius: '5px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: activeTab === 'videos' ? '#1a365d' : '#ccc', color: activeTab === 'videos' ? 'white' : '#333' }}
-          >
-            ▶ Recorded Lectures
-          </button>
-          <button 
-            onClick={() => setActiveTab('notes')}
-            style={{ padding: '10px 20px', borderRadius: '5px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: activeTab === 'notes' ? '#1a365d' : '#ccc', color: activeTab === 'notes' ? 'white' : '#333' }}
-          >
-            📄 Study Materials
-          </button>
-        </div>
-
-        {/* Course Filter Dropdown */}
-        <div>
-          <label style={{ fontWeight: 'bold', marginRight: '10px', color: '#1a365d' }}>Filter by Course:</label>
-          <select 
-            value={selectedCourse} 
-            onChange={(e) => setSelectedCourse(e.target.value)}
-            style={{ padding: '8px', borderRadius: '5px', border: '1px solid #1a365d' }}
-          >
-            {allCourses.map((course, index) => (
-              <option key={index} value={course}>{course}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Content Area */}
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
-        
-        {/* Video Grid */}
-        {activeTab === 'videos' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-            {filteredVideos.length === 0 ? <p>No lectures available for this course yet.</p> : null}
-            
-            {filteredVideos.map((video) => (
-              <div key={video._id} style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                {/* Responsive Player Wrapper */}
-                <VideoCard video={{ ...video, youtubeLink: normalizeVideoUrl(video.youtubeLink) }} />
-                <div style={{ padding: '15px' }}>
-                  <span style={{ backgroundColor: '#facc15', color: '#1a365d', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>{video.subject}</span>
-                  <h3 style={{ margin: '10px 0', color: '#1a365d' }}>{video.title}</h3>
-                  <p style={{ fontSize: '14px', color: '#666' }}>{video.description}</p>
-                </div>
+      <main className="section">
+        <div className="container" style={{ display: 'grid', gap: 24 }}>
+          <section className="dashboard-hero">
+            <div className="dashboard-toolbar">
+              <div>
+                <span className="eyebrow">Student dashboard</span>
+                <h1 className="section-title" style={{ marginTop: 18 }}>
+                  Welcome back, {user?.name || 'Student'}
+                </h1>
+                <p className="section-copy" style={{ marginBottom: 0 }}>
+                  Your learning area is now aligned with the upgraded site: cleaner navigation, better filtering, and a more professional study experience.
+                </p>
               </div>
-            ))}
-          </div>
-        )}
+              <button className="btn-secondary" type="button" onClick={logout}>
+                <FaSignOutAlt />
+                Logout
+              </button>
+            </div>
 
-        {/* Notes Grid */}
-        {activeTab === 'notes' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-            {filteredNotes.length === 0 ? <p>No notes available for this course yet.</p> : null}
+            <div className="grid-3">
+              {stats.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article key={item.label} className="dashboard-card">
+                    <div className="icon-wrap">
+                      <Icon />
+                    </div>
+                    <h3 style={{ marginTop: 16, marginBottom: 6 }}>{item.value}</h3>
+                    <p className="section-copy" style={{ margin: 0 }}>{item.label}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
 
-            {filteredNotes.map((note) => (
-              <div key={note._id} style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px', borderLeft: '5px solid #1a365d', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                <span style={{ backgroundColor: '#facc15', color: '#1a365d', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>{note.subject}</span>
-                <h3 style={{ margin: '10px 0', color: '#1a365d' }}>{note.title}</h3>
-                <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>{note.description}</p>
-                <a 
-                  href={buildNoteUrl(note.fileUrl)} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ display: 'inline-block', backgroundColor: '#1a365d', color: 'white', padding: '8px 15px', borderRadius: '5px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px' }}
+          <section className="dashboard-panel">
+            <div className="dashboard-toolbar">
+              <div className="filter-row">
+                <button
+                  type="button"
+                  className={`filter-button${activeTab === 'videos' ? ' active' : ''}`}
+                  onClick={() => setActiveTab('videos')}
                 >
-                  View / Download PDF
-                </a>
+                  <FaPlayCircle />
+                  Lectures
+                </button>
+                <button
+                  type="button"
+                  className={`filter-button${activeTab === 'notes' ? ' active' : ''}`}
+                  onClick={() => setActiveTab('notes')}
+                >
+                  <FaBookOpen />
+                  Materials
+                </button>
               </div>
-            ))}
-          </div>
-        )}
 
-      </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="field-label" style={{ margin: 0 }}>
+                  <FaFilter style={{ marginRight: 8 }} />
+                  Filter by subject
+                </span>
+                <select
+                  className="field-control"
+                  value={selectedCourse}
+                  onChange={(event) => setSelectedCourse(event.target.value)}
+                  style={{ minWidth: 220 }}
+                >
+                  {allCourses.map((course) => (
+                    <option key={course} value={course}>{course}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {loading ? <div className="empty-state">Loading learning content...</div> : null}
+            {error ? <div className="status-message error">{error}</div> : null}
+
+            {!loading && !error && activeTab === 'videos' ? (
+              filteredVideos.length ? (
+                <div className="content-grid">
+                  {filteredVideos.map((video) => (
+                    <article key={video._id} className="content-card">
+                      <VideoCard video={video} />
+                      <div className="content-body">
+                        <div className="subject-chip">
+                          <FaGraduationCap />
+                          {video.subject || 'General'}
+                        </div>
+                        <h3 style={{ marginTop: 16, marginBottom: 8 }}>{video.title || 'Recorded lecture'}</h3>
+                        <p className="section-copy" style={{ marginBottom: 0 }}>
+                          {video.description || 'Recorded learning content published by the institute.'}
+                        </p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">No recorded lectures are available for this subject yet.</div>
+              )
+            ) : null}
+
+            {!loading && !error && activeTab === 'notes' ? (
+              filteredNotes.length ? (
+                <div className="content-grid">
+                  {filteredNotes.map((note) => (
+                    <NoteCard key={note._id} note={note} href={buildNoteUrl(note.fileUrl)} />
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">No study materials are available for this subject yet.</div>
+              )
+            ) : null}
+          </section>
+        </div>
+      </main>
     </div>
   );
 }
