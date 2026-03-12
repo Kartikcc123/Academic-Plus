@@ -56,6 +56,17 @@ tmp/
 temp/
 
 # ==============================
+# Android / TWA Generated Files
+# ==============================
+academic-plus-android/
+android-toolchain/
+.gradle/
+*.keystore
+*.apk
+*.aab
+*.idsig
+
+# ==============================
 # Database
 # ==============================
 *.sqlite
