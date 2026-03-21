@@ -24,7 +24,7 @@ const createInquiry = async (req, res) => {
 const getInquiries = async (req, res) => {
   try {
     // Fetch all inquiries, sorted by newest first
-    const inquiries = await Inquiry.find({}).sort({ createdAt: -1 });
+    const inquiries = await Inquiry.find({}).sort({ createdAt: -1 }).lean();
     res.json(inquiries);
   } catch (error) {
     res.status(500).json({ message: 'Server error, could not fetch inquiries' });

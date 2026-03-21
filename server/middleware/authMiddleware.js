@@ -19,7 +19,7 @@ const protect = async (req, res, next) => {
 
       // Get user from the token payload and attach it to the request object
       // We use .select('-password') to ensure we don't pass the password hash around
-      req.user = await User.findById(decoded.id).select('-password');
+      req.user = await User.findById(decoded.id).select('-password').lean();
       if (!req.user) {
         return res.status(401).json({ message: 'Not authorized as user' });
       }
@@ -52,7 +52,28 @@ const protectAny = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      const user = await User.findById(decoded.id).select('-password');
+      if (decoded.accountType === 'student') {
+        const user = await User.findById(decoded.id).select('-password').lean();
+        if (!user) {
+          return res.status(401).json({ message: 'Not authorized as user' });
+        }
+        if (!user.portalAccess) {
+          return res.status(403).json({ message: 'Student portal access has not been approved yet' });
+        }
+        req.user = user;
+        return next();
+      }
+
+      if (decoded.accountType === 'admin') {
+        const adminUser = await Admin.findById(decoded.id).select('-password').lean();
+        if (!adminUser) {
+          return res.status(401).json({ message: 'Not authorized as admin' });
+        }
+        req.admin = adminUser;
+        return next();
+      }
+
+      const user = await User.findById(decoded.id).select('-password').lean();
       if (user) {
         if (!user.portalAccess) {
           return res.status(403).json({ message: 'Student portal access has not been approved yet' });
@@ -61,7 +82,7 @@ const protectAny = async (req, res, next) => {
         return next();
       }
 
-      const adminUser = await Admin.findById(decoded.id).select('-password');
+      const adminUser = await Admin.findById(decoded.id).select('-password').lean();
       if (adminUser) {
         req.admin = adminUser;
         return next();

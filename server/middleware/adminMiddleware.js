@@ -13,7 +13,7 @@ const protectAdmin = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Explicitly search the Admin collection
-      req.admin = await Admin.findById(decoded.id).select('-password');
+      req.admin = await Admin.findById(decoded.id).select('-password').lean();
 
       if (!req.admin) {
         return res.status(401).json({ message: 'Not authorized as admin' });

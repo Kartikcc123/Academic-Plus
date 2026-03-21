@@ -64,7 +64,7 @@ const uploadLocalNote = async (req, res) => {
 const getNotes = async (req, res) => {
   try {
     // Fetch all notes, sorting by the newest ones first
-    const notes = await Note.find({}).sort({ createdAt: -1 });
+    const notes = await Note.find({}).sort({ createdAt: -1 }).lean();
     res.status(200).json(notes);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch notes.' });

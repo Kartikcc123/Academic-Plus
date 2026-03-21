@@ -21,7 +21,7 @@ const createVideo = async (req, res) => {
 
 const getVideos = async (req, res) => {
   try {
-    const videos = await Video.find({}).sort({ createdAt: -1 });
+    const videos = await Video.find({}).sort({ createdAt: -1 }).lean();
     res.status(200).json(videos);
   } catch (error) {
     res.status(500).json({ message: error.message });
