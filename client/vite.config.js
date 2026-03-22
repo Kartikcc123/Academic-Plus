@@ -7,7 +7,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['app-icon.svg', 'app-icon-maskable.svg'],
+      includeAssets: [
+        'icons/icon-192.png',
+        'icons/icon-512.png',
+        'icons/icon-maskable.png',
+        'apple-touch-icon.png',
+      ],
       workbox: {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
@@ -16,6 +21,7 @@ export default defineConfig({
         name: 'Academic Plus',
         short_name: 'Academic Plus',
         description: 'Professional coaching and healthcare career guidance platform with student and admin portals.',
+        id: '/',
         theme_color: '#102033',
         background_color: '#fcfaf5',
         display: 'standalone',
@@ -25,16 +31,36 @@ export default defineConfig({
         categories: ['education', 'productivity'],
         icons: [
           {
-            src: '/app-icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: '/icons/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/app-icon-maskable.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: '/icons/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/icons/icon-maskable.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'maskable',
+          },
+        ],
+        screenshots: [
+          {
+            src: '/screenshots/home.png',
+            sizes: '1280x720',
+            type: 'image/png',
+            form_factor: 'wide',
+          },
+          {
+            src: '/screenshots/programs.png',
+            sizes: '1280x720',
+            type: 'image/png',
+            form_factor: 'wide',
           },
         ],
       },

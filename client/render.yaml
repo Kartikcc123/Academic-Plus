@@ -1,0 +1,12 @@
+services:
+  - type: static
+    name: academic-plus
+    buildCommand: npm run build
+    publishDir: dist
+    headers:
+      - path: /.well-known/*
+        name: Access-Control-Allow-Origin
+        value: "*"
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate

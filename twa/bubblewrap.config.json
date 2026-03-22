@@ -1,0 +1,22 @@
+{
+  "packageId": "com.academicplus.app",
+  "host": "your-actual-domain.com",
+  "name": "Academic Plus",
+  "launcherName": "Academic Plus",
+  "display": "standalone",
+  "themeColor": "#102033",
+  "navigationColor": "#102033",
+  "backgroundColor": "#fcfaf5",
+  "startUrl": "/",
+  "applicationId": "com.academicplus.app",
+  "webManifestUrl": "https://your-actual-domain.com/manifest.webmanifest",
+  "iconUrl": "https://your-actual-domain.com/icons/icon-512.png",
+  "maskableIconUrl": "https://your-actual-domain.com/icons/icon-maskable.png",
+  "fallbackType": "customtabs",
+  "enableNotifications": false,
+  "shortcuts": [],
+  "features": {
+    "playBilling": false
+  },
+  "generatorApp": "bubblewrap"
+}
