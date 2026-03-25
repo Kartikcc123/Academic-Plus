@@ -10,7 +10,7 @@ const protectAdmin = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-change-in-production');
 
       // Explicitly search the Admin collection
       req.admin = await Admin.findById(decoded.id).select('-password').lean();

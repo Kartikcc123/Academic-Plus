@@ -15,7 +15,7 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
 
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-change-in-production');
 
       // Get user from the token payload and attach it to the request object
       // We use .select('-password') to ensure we don't pass the password hash around
@@ -50,7 +50,7 @@ const protectAny = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-change-in-production');
 
       if (decoded.accountType === 'student') {
         const user = await User.findById(decoded.id).select('-password').lean();

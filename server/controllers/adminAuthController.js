@@ -3,7 +3,7 @@ const Admin = require('../models/Admin');
 const User = require('../models/User');
 
 const generateToken = (id) => {
-  return jwt.sign({ id, accountType: 'admin' }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ id, accountType: 'admin' }, process.env.JWT_SECRET || 'fallback-secret-change-in-production', { expiresIn: '30d' });
 };
 
 // @desc    Authenticate an Admin

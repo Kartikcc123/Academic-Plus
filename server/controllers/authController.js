@@ -4,7 +4,8 @@ const Inquiry = require('../models/Inquiry');
 
 // Generate JWT Helper Function
 const generateToken = (id, accountType = 'student') => {
-  return jwt.sign({ id, accountType }, process.env.JWT_SECRET, {
+  const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+  return jwt.sign({ id, accountType }, jwtSecret, {
     expiresIn: '30d', // Token lasts for 30 days
   });
 };
