@@ -1,5 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import api from '../lib/api';
 import {
   FaBookOpen,
   FaFilter,
@@ -7,6 +8,7 @@ import {
   FaLayerGroup,
   FaPlayCircle,
   FaSignOutAlt,
+  FaTrash,
 } from 'react-icons/fa';
 import { AuthContext } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
@@ -16,13 +18,19 @@ import { API_BASE_URL } from '../lib/api';
 
 export default function StudentDashboard() {
   const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
   const [notes, setNotes] = useState([]);
   const [activeTab, setActiveTab] = useState('videos');
   const [selectedCourse, setSelectedCourse] = useState('All');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const apiBaseUrl = API_BASE_URL;
+
+  // Delete account state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -37,8 +45,8 @@ export default function StudentDashboard() {
         };
 
         const [videoRes, noteRes] = await Promise.all([
-          axios.get('/api/videos', config),
-          axios.get('/api/notes', config),
+          api.get('/api/videos', config),
+          api.get('/api/notes', config),
         ]);
 
         setVideos(videoRes.data);
@@ -70,9 +78,13 @@ export default function StudentDashboard() {
   const buildNoteUrl = (fileUrl) => {
     if (!fileUrl) return '#';
     const cleaned = fileUrl.trim().replace(/\\/g, '/');
+    // If it's already an external URL, return as-is
     if (/^https?:\/\//i.test(cleaned)) return cleaned;
-    const withSlash = cleaned.startsWith('/') ? cleaned : `/${cleaned}`;
-    return `${apiBaseUrl}${withSlash}`;
+    // Ensure it starts with /uploads/
+    if (!cleaned.startsWith('/uploads/')) {
+      return `/uploads/${cleaned}`;
+    }
+    return cleaned;
   };
 
   const stats = [
@@ -80,6 +92,35 @@ export default function StudentDashboard() {
     { label: 'Study materials', value: notes.length, icon: FaBookOpen },
     { label: 'Subjects available', value: Math.max(allCourses.length - 1, 0), icon: FaLayerGroup },
   ];
+
+  // Handle account deletion
+  const handleDeleteAccount = async (event) => {
+    event.preventDefault();
+    setDeleteError('');
+    setDeleting(true);
+
+    if (!deletePassword) {
+      setDeleteError('Password is required to delete account');
+      setDeleting(false);
+      return;
+    }
+
+    try {
+      // Use api with correct request body for DELETE
+      await api.delete('/api/auth/account', {
+        data: { password: deletePassword },
+        headers: { Authorization: `Bearer ${user?.token}` }
+      });
+      
+      // Logout and redirect
+      logout();
+      navigate('/');
+    } catch (error) {
+      setDeleteError(error.response?.data?.message || 'Failed to delete account');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="site-shell">
@@ -101,6 +142,14 @@ export default function StudentDashboard() {
               <button className="btn-secondary" type="button" onClick={logout}>
                 <FaSignOutAlt />
                 Logout
+              </button>
+              <button 
+                className="danger-button" 
+                type="button" 
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <FaTrash />
+                Delete My Account
               </button>
             </div>
 
@@ -198,6 +247,64 @@ export default function StudentDashboard() {
               )
             ) : null}
           </section>
+
+          {/* Delete Account Confirmation Modal */}
+          {showDeleteConfirm && (
+            <div className="modal-backdrop" onClick={() => setShowDeleteConfirm(false)}>
+              <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+                <div style={{ textAlign: 'center' }}>
+                  <FaTrash size={40} color="#dc2626" style={{ marginBottom: 16 }} />
+                  <h2 style={{ marginBottom: 16 }}>Delete My Account</h2>
+                  <p className="section-copy" style={{ marginBottom: 24 }}>
+                    Are you sure you want to delete your account? This action cannot be undone.
+                  </p>
+                  
+                  {deleteError ? (
+                    <div className="status-message error" style={{ marginBottom: 16 }}>
+                      {deleteError}
+                    </div>
+                  ) : null}
+
+                  <form onSubmit={handleDeleteAccount}>
+                    <div style={{ marginBottom: 16 }}>
+                      <label className="field-label" htmlFor="delete-password">
+                        Enter your password to confirm deletion
+                      </label>
+                      <input
+                        id="delete-password"
+                        className="field-control"
+                        type="password"
+                        value={deletePassword}
+                        onChange={(event) => setDeletePassword(event.target.value)}
+                        placeholder="Your password"
+                        required
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                      <button 
+                        className="danger-button" 
+                        type="submit" 
+                        disabled={deleting}
+                      >
+                        {deleting ? 'Deleting...' : 'Delete My Account'}
+                      </button>
+                      <button 
+                        className="btn-secondary" 
+                        type="button" 
+                        onClick={() => {
+                          setShowDeleteConfirm(false);
+                          setDeletePassword('');
+                          setDeleteError('');
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

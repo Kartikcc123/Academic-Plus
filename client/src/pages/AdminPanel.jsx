@@ -1,17 +1,21 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import {
   FaBookOpen,
   FaChartLine,
   FaCheckCircle,
   FaClipboardList,
   FaFilePdf,
+  FaKey,
   FaLayerGroup,
   FaPlayCircle,
+  FaSearch,
+  FaShieldAlt,
   FaTimesCircle,
   FaTrash,
   FaUpload,
   FaUserGraduate,
+  FaUserSecret,
 } from 'react-icons/fa';
 import { AuthContext } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
@@ -29,6 +33,8 @@ const tabItems = [
   { id: 'content', label: 'Content library', icon: FaLayerGroup },
   { id: 'upload', label: 'Publish content', icon: FaUpload },
   { id: 'inquiries', label: 'Admission leads', icon: FaClipboardList },
+  { id: 'password', label: 'Change Password', icon: FaKey },
+  { id: 'admins', label: 'Manage Admins', icon: FaShieldAlt },
 ];
 
 export default function AdminPanel() {
@@ -38,12 +44,26 @@ export default function AdminPanel() {
   const [inquiries, setInquiries] = useState([]);
   const [videos, setVideos] = useState([]);
   const [notes, setNotes] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [uploadType, setUploadType] = useState('video');
   const [noteSourceType, setNoteSourceType] = useState('file');
   const [formData, setFormData] = useState(initialForm);
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState({ type: '', message: '' });
+
+  // Password change state
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // Admin access management state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const authConfig = useMemo(
     () => ({ headers: { Authorization: `Bearer ${admin?.token}` } }),
@@ -57,10 +77,10 @@ export default function AdminPanel() {
       try {
         setLoading(true);
         const [studentRes, inquiryRes, videoRes, noteRes] = await Promise.all([
-          axios.get('/api/admin/students', authConfig),
-          axios.get('/api/inquiries', authConfig),
-          axios.get('/api/videos', authConfig),
-          axios.get('/api/notes', authConfig),
+          api.get('/api/admin/students', authConfig),
+          api.get('/api/inquiries', authConfig),
+          api.get('/api/videos', authConfig),
+          api.get('/api/notes', authConfig),
         ]);
 
         setStudents(studentRes.data);
@@ -97,7 +117,7 @@ export default function AdminPanel() {
           description: formData.description,
           youtubeLink: formData.link,
         };
-        const response = await axios.post('/api/videos', payload, authConfig);
+        const response = await api.post('/api/videos', payload, authConfig);
         setVideos((current) => [response.data.video, ...current]);
       } else if (noteSourceType === 'link') {
         const payload = {
@@ -106,7 +126,7 @@ export default function AdminPanel() {
           description: formData.description,
           fileUrl: formData.link,
         };
-        const response = await axios.post('/api/notes', payload, authConfig);
+        const response = await api.post('/api/notes', payload, authConfig);
         setNotes((current) => [response.data.note, ...current]);
       } else {
         const noteData = new FormData();
@@ -115,7 +135,7 @@ export default function AdminPanel() {
         if (formData.description) noteData.append('description', formData.description);
         if (file) noteData.append('pdfFile', file);
 
-        const response = await axios.post('/api/notes/upload', noteData, {
+        const response = await api.post('/api/notes/upload', noteData, {
           headers: { ...authConfig.headers, 'Content-Type': 'multipart/form-data' },
         });
         setNotes((current) => [response.data.note, ...current]);
@@ -135,7 +155,7 @@ export default function AdminPanel() {
     if (!window.confirm('Delete this student permanently?')) return;
 
     try {
-      await axios.delete(`/api/admin/students/${studentId}`, authConfig);
+      await api.delete(`/api/admin/students/${studentId}`, authConfig);
       setStudents((current) => current.filter((student) => student._id !== studentId));
     } catch (error) {
       setStatus({
@@ -146,12 +166,20 @@ export default function AdminPanel() {
   };
 
   const handlePortalAccessToggle = async (studentId, portalAccess) => {
+    if (!studentId) {
+      setStatus({ type: 'error', message: 'Invalid student ID' });
+      return;
+    }
+    
     try {
-      const response = await axios.patch(
+      console.log('Granting portal access:', { studentId, portalAccess });
+      const response = await api.patch(
         `/api/admin/students/${studentId}/portal-access`,
         { portalAccess },
         authConfig,
       );
+
+      console.log('Response:', response.data);
 
       setStudents((current) => current.map((student) => (
         student._id === studentId ? response.data.student : student
@@ -173,7 +201,7 @@ export default function AdminPanel() {
     if (!window.confirm('Delete this note from the portal?')) return;
 
     try {
-      await axios.delete(`/api/notes/${noteId}`, authConfig);
+      await api.delete(`/api/notes/${noteId}`, authConfig);
       setNotes((current) => current.filter((note) => note._id !== noteId));
     } catch (error) {
       setStatus({
@@ -185,7 +213,7 @@ export default function AdminPanel() {
 
   const handleStatusUpdate = async (inquiryId, newStatus) => {
     try {
-      await axios.put(`/api/inquiries/${inquiryId}`, { status: newStatus }, authConfig);
+      await api.put(`/api/inquiries/${inquiryId}`, { status: newStatus }, authConfig);
       setInquiries((current) => current.map((lead) => (
         lead._id === inquiryId ? { ...lead, status: newStatus } : lead
       )));
@@ -196,6 +224,104 @@ export default function AdminPanel() {
       });
     }
   };
+
+  // Password change handler
+  const handlePasswordChange = async (event) => {
+    event.preventDefault();
+    setStatus({ type: '', message: '' });
+
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setStatus({ type: 'error', message: 'Please fill in all fields' });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setStatus({ type: 'error', message: 'New passwords do not match' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setStatus({ type: 'error', message: 'Password must be at least 6 characters' });
+      return;
+    }
+
+    try {
+      await api.put('/api/admin/change-password', {
+        currentPassword,
+        newPassword,
+        confirmPassword
+      }, authConfig);
+
+      setStatus({ type: 'success', message: 'Password changed successfully' });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Failed to change password' });
+    }
+  };
+
+  // Search users handler
+  const handleSearchUsers = async () => {
+    if (!searchQuery.trim()) return;
+
+    setSearching(true);
+    setStatus({ type: '', message: '' });
+
+    try {
+      const response = await api.get(`/api/admin/search-users?query=${encodeURIComponent(searchQuery)}`, authConfig);
+      setSearchResults(response.data);
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Search failed' });
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // Grant admin access handler
+  const handleGrantAdmin = async (userId) => {
+    try {
+      await api.put('/api/admin/grant-admin', { userId }, authConfig);
+      setStatus({ type: 'success', message: 'Admin access granted successfully' });
+      setSearchResults([]);
+      setSearchQuery('');
+      // Refresh admins list
+      const response = await api.get('/api/admin/admins', authConfig);
+      setAdmins(response.data);
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Failed to grant admin access' });
+    }
+    setConfirmAction(null);
+  };
+
+  // Revoke admin access handler
+  const handleRevokeAdmin = async (adminId) => {
+    try {
+      await api.put('/api/admin/revoke-admin', { adminId }, authConfig);
+      setStatus({ type: 'success', message: 'Admin access revoked successfully' });
+      // Refresh admins list
+      const response = await api.get('/api/admin/admins', authConfig);
+      setAdmins(response.data);
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Failed to revoke admin access' });
+    }
+    setConfirmAction(null);
+  };
+
+  // Load admins on mount
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      if (!admin?.token) return;
+      try {
+        const response = await api.get('/api/admin/admins', authConfig);
+        setAdmins(response.data);
+      } catch (error) {
+        console.error('Failed to fetch admins:', error);
+      }
+    };
+    fetchAdmins();
+  }, [admin, authConfig]);
 
   const metrics = [
     { label: 'Students', value: students.length, icon: FaUserGraduate },
@@ -545,6 +671,187 @@ export default function AdminPanel() {
                       </div>
                     </article>
                   )) : <div className="empty-state">No admission inquiries yet.</div>}
+                </div>
+              ) : null}
+
+              {/* Password Change Tab */}
+              {!loading && activeTab === 'password' ? (
+                <div className="table-card">
+                  <div className="card-kicker">Security</div>
+                  <h2 style={{ margin: '8px 0 18px' }}>Change Your Password</h2>
+                  
+                  <form className="form-grid" onSubmit={handlePasswordChange}>
+                    <div>
+                      <label className="field-label" htmlFor="current-password">Current Password</label>
+                      <input
+                        id="current-password"
+                        className="field-control"
+                        type="password"
+                        value={passwordForm.currentPassword}
+                        onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="field-label" htmlFor="new-password">New Password</label>
+                      <input
+                        id="new-password"
+                        className="field-control"
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="field-label" htmlFor="confirm-password">Confirm New Password</label>
+                      <input
+                        id="confirm-password"
+                        className="field-control"
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                        required
+                      />
+                    </div>
+                    <button className="btn" type="submit">Update Password</button>
+                  </form>
+                </div>
+              ) : null}
+
+              {/* Admin Management Tab */}
+              {!loading && activeTab === 'admins' ? (
+                <div style={{ display: 'grid', gap: 24 }}>
+                  {/* Search Users Section */}
+                  <div className="table-card">
+                    <div className="card-kicker">Grant Admin Access</div>
+                    <h2 style={{ margin: '8px 0 18px' }}>Search Users to Promote</h2>
+                    
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>
+                      <input
+                        className="field-control"
+                        type="text"
+                        placeholder="Search by email or name..."
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        onKeyPress={(event) => event.key === 'Enter' && handleSearchUsers()}
+                      />
+                      <button className="btn" type="button" onClick={handleSearchUsers} disabled={searching}>
+                        <FaSearch />
+                        {searching ? 'Searching...' : 'Search'}
+                      </button>
+                    </div>
+
+                    {searchResults.length > 0 && (
+                      <div className="table-wrap">
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Email</th>
+                              <th>Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {searchResults.map((user) => (
+                              <tr key={user._id}>
+                                <td>{user.name}</td>
+                                <td>{user.email}</td>
+                                <td>
+                                  {confirmAction?.type === 'grant' && confirmAction?.id === user._id ? (
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                      <button
+                                        className="btn"
+                                        type="button"
+                                        onClick={() => handleGrantAdmin(user._id)}
+                                      >
+                                        Confirm
+                                      </button>
+                                      <button
+                                        className="btn-secondary"
+                                        type="button"
+                                        onClick={() => setConfirmAction(null)}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      className="secondary-button"
+                                      type="button"
+                                      onClick={() => setConfirmAction({ type: 'grant', id: user._id })}
+                                    >
+                                      <FaUserSecret />
+                                      Make Admin
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Current Admins Section */}
+                  <div className="table-card">
+                    <div className="card-kicker">Current Administrators</div>
+                    <h2 style={{ margin: '8px 0 18px' }}>Manage Existing Admins</h2>
+                    
+                    <div className="table-wrap">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Joined</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {admins.map((adminUser) => (
+                            <tr key={adminUser._id}>
+                              <td>{adminUser.name}</td>
+                              <td>{adminUser.email}</td>
+                              <td>{new Date(adminUser.createdAt).toLocaleDateString()}</td>
+                              <td>
+                                {confirmAction?.type === 'revoke' && confirmAction?.id === adminUser._id ? (
+                                  <div style={{ display: 'flex', gap: 8 }}>
+                                    <button
+                                      className="danger-button"
+                                      type="button"
+                                      onClick={() => handleRevokeAdmin(adminUser._id)}
+                                    >
+                                      Confirm Revoke
+                                    </button>
+                                    <button
+                                      className="btn-secondary"
+                                      type="button"
+                                      onClick={() => setConfirmAction(null)}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : adminUser._id !== admin?._id ? (
+                                  <button
+                                    className="danger-button"
+                                    type="button"
+                                    onClick={() => setConfirmAction({ type: 'revoke', id: adminUser._id })}
+                                  >
+                                    <FaTrash />
+                                    Revoke Access
+                                  </button>
+                                ) : (
+                                  <span className="section-copy">Current Session</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </div>

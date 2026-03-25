@@ -13,8 +13,13 @@ const app = express();
 const path = require('path');
 
 // Global Middleware
-app.use(cors()); // Essential: Allows your React PWA to make requests to this backend
-app.use(express.json()); // Allows the server to accept JSON data in request bodies
+app.use(cors({ 
+  origin: '*', // Allow all origins for API requests
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+})); 
+app.use(express.json({ limit: '10mb' })); // Allows the server to accept JSON data in request bodies
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // A simple test route to make sure it's working
 app.get('/', (req, res) => {

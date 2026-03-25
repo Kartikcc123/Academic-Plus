@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add an email'],
     unique: true,
+    index: true,
     match: [
       /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
       'Please add a valid email'
@@ -19,18 +20,24 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a password'],
     minlength: 6,
-    select: false // When we fetch users, don't return the password by default!
+    select: false
   },
   role: {
     type: String,
     enum: ['student', 'admin'],
-    default: 'student'
+    default: 'student',
+    index: true
   },
   portalAccess: {
     type: Boolean,
-    default: false
+    default: false,
+    index: true
   }
 }, { timestamps: true });
+
+// Compound indexes for common query patterns (removed duplicate email index)
+userSchema.index({ role: 1, createdAt: -1 });
+userSchema.index({ portalAccess: 1, createdAt: -1 });
 
 // Pre-save hook to hash the password before saving to the database
 userSchema.pre('save', async function() {

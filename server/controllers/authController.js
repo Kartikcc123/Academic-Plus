@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Inquiry = require('../models/Inquiry');
 
 // Generate JWT Helper Function
 const generateToken = (id, accountType = 'student') => {
@@ -57,28 +58,91 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user by email and explicitly select the password field (since we hid it in the model)
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Please provide email and password' });
+    }
+
+    // Find user by email and explicitly select the password field
     const user = await User.findOne({ email }).select('+password');
 
-    if (user && (await user.matchPassword(password))) {
-      if (!user.portalAccess) {
-        return res.status(403).json({ message: 'Portal access is pending admin approval' });
-      }
+    // Debug: Log user existence (not the password)
+    console.log('User found:', user ? 'yes' : 'no');
 
-      res.json({
-        _id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        portalAccess: user.portalAccess,
-        token: generateToken(user._id, user.role),
-      });
-    } else {
-      res.status(401).json({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    // Check if matchPassword method exists
+    if (typeof user.matchPassword !== 'function') {
+      console.error('matchPassword method missing on user object');
+      return res.status(500).json({ message: 'User model error' });
+    }
+
+    const isMatch = await user.matchPassword(password);
+    
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (!user.portalAccess) {
+      return res.status(403).json({ message: 'Portal access is pending admin approval' });
+    }
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      portalAccess: user.portalAccess,
+      token: generateToken(user._id, user.role),
+    });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { registerUser, loginUser };
+// @desc    Delete student account
+// @route   DELETE /api/auth/account
+// @access  Private (Student)
+const deleteAccount = async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required to delete account' });
+    }
+
+    // Get user with password
+    const user = await User.findById(req.user._id).select('+password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if matchPassword method exists
+    if (typeof user.matchPassword !== 'function') {
+      console.error('matchPassword method missing on user object');
+      return res.status(500).json({ message: 'User model error' });
+    }
+
+    // Verify password
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Password is incorrect' });
+    }
+
+    // Delete user's inquiries
+    await Inquiry.deleteMany({ name: user.name, phone: { $exists: true } });
+
+    // Delete the user
+    await User.findByIdAndDelete(user._id);
+
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, deleteAccount };

@@ -10,7 +10,8 @@ const adminSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, 'Please add an email'],
-    unique: true
+    unique: true,
+    index: true // Add index for faster queries
   },
   password: {
     type: String,
@@ -18,6 +19,9 @@ const adminSchema = new mongoose.Schema({
     select: false
   }
 }, { timestamps: true });
+
+// Index for faster login queries (removed duplicate)
+// Note: email index is already defined with index: true in schema
 
 // Hash password before saving
 adminSchema.pre('save', async function(next) {

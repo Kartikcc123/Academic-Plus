@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { FaArrowRight, FaHeadset } from 'react-icons/fa';
 import Navbar from '../components/Navbar';
 import { contactCards, siteMeta } from '../data/siteContent';
@@ -15,7 +15,7 @@ export default function Contact() {
     setStatus({ loading: true, success: false, error: '' });
 
     try {
-      await axios.post('/api/inquiries', formData);
+      await api.post('/api/inquiries', formData);
       setStatus({ loading: false, success: true, error: '' });
       setFormData(initialForm);
     } catch (error) {

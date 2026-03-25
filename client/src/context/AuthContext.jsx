@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 
 export const AuthContext = createContext();
 
@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
 
   // Student Login
   const loginUser = async (email, password) => {
-    const res = await axios.post('/api/auth/login', { email, password });
+    const res = await api.post('/api/auth/login', { email, password });
     if (res.data) {
       localStorage.setItem('user', JSON.stringify(res.data));
       setUser(res.data);
@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
 
   // Admin Login
   const loginAdmin = async (email, password) => {
-    const res = await axios.post('/api/admin/login', { email, password });
+    const res = await api.post('/api/admin/login', { email, password });
     if (res.data) {
       localStorage.setItem('admin', JSON.stringify(res.data));
       setAdmin(res.data);

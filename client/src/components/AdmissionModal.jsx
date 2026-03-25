@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FaArrowRight, FaTimes } from 'react-icons/fa';
-import axios from 'axios';
+import api from '../lib/api';
 import { closeAdmissionModal } from '../redux/uiSlice';
 
 const initialForm = { name: '', phone: '', course: '' };
@@ -23,7 +23,7 @@ export default function AdmissionModal() {
     setStatus({ loading: true, error: '', success: false });
 
     try {
-      await axios.post('/api/inquiries', formData);
+      await api.post('/api/inquiries', formData);
       setStatus({ loading: false, error: '', success: true });
       window.setTimeout(handleClose, 1600);
     } catch (error) {

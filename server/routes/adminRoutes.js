@@ -1,13 +1,22 @@
 const express = require('express');
 const router = express.Router();
 
-// 1. Your Auth Controllers
-const { loginAdmin, updateAdminProfile, createNewAdmin } = require('../controllers/adminAuthController');
+// Import Auth Controllers
+const { 
+  loginAdmin, 
+  updateAdminProfile, 
+  changeAdminPassword,
+  getAllAdmins,
+  searchUsers,
+  grantAdminAccess,
+  revokeAdminAccess,
+  createNewAdmin 
+} = require('../controllers/adminAuthController');
 
-// 2. Your Middleware (The Bouncer)
+// Import Middleware
 const { protectAdmin } = require('../middleware/adminMiddleware'); 
 
-// 3. Import the User model so we can fetch and delete students!
+// Import User model
 const User = require('../models/User'); 
 
 // ==========================================
@@ -17,11 +26,35 @@ router.post('/login', loginAdmin);
 
 // These routes require you to ALREADY be logged in as an admin to use them
 router.put('/profile', protectAdmin, updateAdminProfile);
+router.put('/change-password', protectAdmin, changeAdminPassword);
 router.post('/create-admin', protectAdmin, createNewAdmin);
 
+// ==========================================
+// ADMIN ACCESS MANAGEMENT ROUTES
+// ==========================================
+
+// @route   GET /api/admin/admins
+// @desc    Get all admins
+// @access  Private/Admin
+router.get('/admins', protectAdmin, getAllAdmins);
+
+// @route   GET /api/admin/search-users
+// @desc    Search users by email or name
+// @access  Private/Admin
+router.get('/search-users', protectAdmin, searchUsers);
+
+// @route   PUT /api/admin/grant-admin
+// @desc    Grant admin access to a user
+// @access  Private/Admin
+router.put('/grant-admin', protectAdmin, grantAdminAccess);
+
+// @route   PUT /api/admin/revoke-admin
+// @desc    Revoke admin access from an admin
+// @access  Private/Admin
+router.put('/revoke-admin', protectAdmin, revokeAdminAccess);
 
 // ==========================================
-// ADMIN DATA ROUTES (The VIP Bridge)
+// STUDENT MANAGEMENT ROUTES
 // ==========================================
 
 // @route   GET /api/admin/students
@@ -29,10 +62,10 @@ router.post('/create-admin', protectAdmin, createNewAdmin);
 // @access  Private/Admin
 router.get('/students', protectAdmin, async (req, res) => {
   try {
-    // Find student users, hide passwords, and sort newest first
     const students = await User.find({ role: 'student' })
                                .select('-password')
-                               .sort({ createdAt: -1 }); 
+                               .sort({ createdAt: -1 })
+                               .lean(); 
     
     res.status(200).json(students);
   } catch (error) {
@@ -47,22 +80,31 @@ router.get('/students', protectAdmin, async (req, res) => {
 router.patch('/students/:id/portal-access', protectAdmin, async (req, res) => {
   try {
     const { portalAccess } = req.body;
-    const student = await User.findById(req.params.id).select('-password');
+    console.log('Portal access request:', { studentId: req.params.id, portalAccess });
+    
+    const student = await User.findById(req.params.id).select('-password').lean();
 
     if (!student) {
+      console.log('Student not found:', req.params.id);
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    student.portalAccess = Boolean(portalAccess);
-    await student.save();
+    // Use findByIdAndUpdate for more reliable update
+    const updatedStudent = await User.findByIdAndUpdate(
+      req.params.id,
+      { portalAccess: Boolean(portalAccess) },
+      { new: true }
+    ).select('-password');
 
+    console.log('Student updated:', updatedStudent);
+    
     res.status(200).json({
-      message: `Portal access ${student.portalAccess ? 'granted' : 'revoked'} successfully`,
-      student,
+      message: `Portal access ${updatedStudent.portalAccess ? 'granted' : 'revoked'} successfully`,
+      student: updatedStudent,
     });
   } catch (error) {
     console.error('Portal access update error:', error);
-    res.status(500).json({ message: 'Server error while updating portal access' });
+    res.status(500).json({ message: 'Server error while updating portal access: ' + error.message });
   }
 });
 
@@ -73,7 +115,6 @@ router.delete('/students/:id', protectAdmin, async (req, res) => {
   try {
     const studentId = req.params.id;
     
-    // Find the student by ID and remove them from the database
     const deletedStudent = await User.findByIdAndDelete(studentId);
     
     if (!deletedStudent) {

@@ -720,12 +720,26 @@ textarea {
   position: absolute;
   top: 18px;
   right: 18px;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  background: #dc2626;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #b91c1c;
+  transform: scale(1.05);
+}
+
+.modal-close svg {
+  color: #ffffff;
+  font-size: 14px;
 }
 
 .auth-shell {

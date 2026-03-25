@@ -64,6 +64,7 @@ const uploadLocalNote = async (req, res) => {
 const getNotes = async (req, res) => {
   try {
     // Fetch all notes, sorting by the newest ones first
+    // Use lean() for faster query - returns plain JS objects instead of Mongoose documents
     const notes = await Note.find({}).sort({ createdAt: -1 }).lean();
     res.status(200).json(notes);
   } catch (error) {
@@ -76,13 +77,13 @@ const getNotes = async (req, res) => {
 // @access  Private (Admin Only)
 const deleteNote = async (req, res) => {
   try {
-    const note = await Note.findById(req.params.id);
+    // Use findByIdAndDelete for better performance
+    const note = await Note.findByIdAndDelete(req.params.id);
 
     if (!note) {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    await note.deleteOne();
     res.status(200).json({ message: 'Note deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

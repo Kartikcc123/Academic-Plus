@@ -24,6 +24,7 @@ const createInquiry = async (req, res) => {
 const getInquiries = async (req, res) => {
   try {
     // Fetch all inquiries, sorted by newest first
+    // Use lean() for faster query - returns plain JS objects instead of Mongoose documents
     const inquiries = await Inquiry.find({}).sort({ createdAt: -1 }).lean();
     res.json(inquiries);
   } catch (error) {

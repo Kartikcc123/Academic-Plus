@@ -20,4 +20,7 @@ const inquirySchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Index for faster queries on status and creation date
+inquirySchema.index({ status: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Inquiry', inquirySchema);
